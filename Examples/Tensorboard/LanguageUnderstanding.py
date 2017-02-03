@@ -96,9 +96,12 @@ def train(reader, model, max_epochs):
 
     # process minibatches and perform model training
     log_number_of_parameters(z) ; print()
-    # more detailed logging
-    progress_printer = ProgressPrinter(freq=100, first=10, tag='Training', tensorboard_log_dir='atis_log', model=z)
-    #progress_printer = ProgressPrinter(tag='Training')
+
+    progress_writers = ProgressWriters(
+        # more detailed logging
+        ProgressPrinter(freq=100, first=10, tag='Training'),
+        #ProgressPrinter(tag='Training'),
+        TensorBoardProgressWriter(freq=10, log_dir='atis_log', model=z))
 
     t = 0
     for epoch in range(max_epochs):         # loop over epochs
@@ -108,16 +111,14 @@ def train(reader, model, max_epochs):
             data = reader.next_minibatch(min(minibatch_size, epoch_end-t), input_map=input_map) # fetch minibatch
             trainer.train_minibatch(data)                                   # update model with it
             t += trainer.previous_minibatch_sample_count                    # count samples processed so far
-            progress_printer.update_with_trainer(trainer, with_metric=True) # log progress
+            progress_writers.update_with_trainer(trainer, with_metric=True) # log progress
             #def trace_node(name):
             #    nl = [n for n in z.parameters if n.name() == name]
             #    if len(nl) > 0:
             #        print (name, np.asarray(nl[0].value))
             #trace_node('W')
             #trace_node('stabilizer_param')
-        loss, metric, actual_samples = progress_printer.epoch_summary(with_metric=True)
-
-    return loss, metric
+        progress_writers.summarize_progress(with_metric=True)
 
 #############################
 # main function boilerplate #
